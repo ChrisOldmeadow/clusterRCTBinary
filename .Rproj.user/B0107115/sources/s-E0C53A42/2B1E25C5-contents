@@ -1,0 +1,119 @@
+set.seed(101)
+library(plyr)
+library(lme4)
+if(!require('doSNOW')) install.packages('doSNOW')  # installs package if not already installed
+if(!require('foreach')) install.packages('foreach')  # installs package if not already installed
+library('doSNOW')
+
+
+
+# using a mixed effects, quick method
+n.site <- 10
+n.id <- 10
+n.period<- n.site+1
+nsim <- 200
+beta <- c(15, 3,5)
+names(beta)<-c("(Intercept)","period","time")
+theta <-8
+names(theta)<-c("site.(Intercept)")
+sigma <- 8
+
+
+expdat <- expand.grid( id = seq(n.id),time = seq(n.period),site =seq(n.site)) 
+
+# randomise sites to steps
+sites <- data.frame(site = seq(n.site), step = sample(seq(n.site)))
+
+
+df<-merge(expdat,sites,by="site")
+
+df$period <- ifelse(df$time<df$step,0,1)
+
+
+
+
+
+ss <- simulate(~ period + time  + (1 | site), nsim = nsim, family = gaussian, 
+               newdata = df, newparams = list(theta = theta,   beta = beta, sigma = sigma))
+
+df$y <- ss[, 1]
+fit1 <- lmer(y ~ period + time + (1 | site) , data = df)
+
+
+fit1B <- refit(fit1, ss[[2]])
+fitsim <- function(i) {
+  coef(summary(refit(fit1, ss[[i]])))["period", ]
+}
+
+t1 <- system.time(fitAll <- ldply(seq(nsim), function(i) fitsim(i)))
+#res <- data.frame(matrix(unlist(fitAll), nrow=length(fitAll), byrow=T))
+names(res)<- c("est", "stderr", "t.value")
+res$p.z <- 2 * (1 - pnorm(abs(res$t.value)))
+with(res, mean(p.z < 0.05))
+
+
+#using fixed effects approach and parallele processing
+library(parallel)
+
+regression_sim <- function(i) {
+  
+  df$y <- ss[,i]
+  coef(summary(lm(y ~ period + site, data=df)))["period", ]
+}
+
+t1 <- system.time(fitAll <- lapply(seq(nsim), function(i) regression_sim(i)))
+
+
+res <- data.frame(matrix(unlist(fitAll), nrow=length(fitAll), byrow=T))
+names(res)<- c("est", "stderr", "t.value","pval")
+with(res, mean(pval < 0.05))
+
+
+
+# parallel for a grid search: TODO fix parallel
+
+regression_sim <- function(trt.eff,sd.site,sd,n.id,n.site) {
+  n.id <- 10
+  n.period<- n.site+1
+  expdat <- expand.grid( id = seq(n.id),time = seq(n.period),site =seq(n.site)) 
+  
+  # randomise sites to steps
+  sites <- data.frame(site = seq(n.site), step = sample(seq(n.site)))
+  
+  
+  df<-merge(expdat,sites,by="site")
+  
+  df$period <- ifelse(df$time<df$step,0,1)
+  
+  beta <- c(15, trt.eff,5)
+  names(beta)<-c("(Intercept)","period","time")
+  theta <- sd.site
+  names(theta)<-c("site.(Intercept)")
+  ss <- simulate(~ period + time  + (1 | site), nsim = 1, family = gaussian, 
+                 newdata = df, newparams = list(theta = theta,   beta = beta, sigma = sd))
+  df$y <- ss[,1]
+  coef(summary(lm(y ~ period + site, data=df)))["period", ]
+}
+
+
+
+#ncpus <- 2  # change this to the number of cores you want to use
+#cl <- makeCluster(ncpus, type='SOCK')
+#registerDoSNOW(cl)
+library(plyr)
+
+
+grid <- expand.grid(n.site=c(6, 7, 8), trt.eff=c(2, 3, 4))
+results <- NULL
+system.time(for (row in 1:nrow(grid)) {
+  sims <- plyr::ldply(1:1000, regression_sim, trt.eff =grid[row, 'trt.eff'] ,sd.site=5,sd=3,n.id=10,
+                n.site=grid[row, 'n.site'])
+  
+  sims$n.site <- grid[row, 'n.site']
+  sims$trt.eff <- grid[row, 'trt.eff']
+  results <- rbind(results, sims)
+})
+
+#stopCluster(cl)
+
+

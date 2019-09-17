@@ -1,0 +1,29 @@
+k=31
+m=7
+rho=.05
+sigma=618.50 
+mu1= 2100.00 
+mu2=1928.00 
+r01=0.5
+treat <- c(rep(0,(k*m)),rep(1,(k*m)))
+site <- c(rep(1:(k*2),each=m))
+
+
+var_b <-(rho*sigma^2)/(1-rho)
+
+err <- rnorm(k*2*m,mean=0,sigma)
+a <- rnorm(k*2,mean=0,sqrt(var_b)) # site level random effect
+
+arep <- rep(a,each = m)
+
+y0<-rnorm(k*2*m,mean=mu1,sigma)
+
+b1 <- mu2-mu1
+y <- mu1 + r01*y0+ b1*treat + arep + err # b0 = r01 when sd(y0) = sd(y)
+
+
+
+res <- lmer(y ~ treat + (1|site))
+summary(res)
+tests<-anova(res)
+p<-tests$`Pr(>F)`

@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1568244549492.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "18C05B84",
+    "lastKnownWriteTime" : 1539294187,
+    "last_content_update" : 1539294187,
+    "path" : "C:/Users/coldmeadow/Dropbox/Scripts/R/simpower/sim_cluster_rct.R",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "11,31",
+        "scrollLine" : "0"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 5,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

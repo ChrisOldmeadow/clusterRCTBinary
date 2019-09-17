@@ -1,0 +1,117 @@
+library(geepack)
+library(lme4)
+
+
+a <- function(rho, p, q) {
+  rho * sqrt(p*q*(1-p)*(1-q)) + (1-p)*(1-q)
+}
+
+simBivBin <- function(npair,p1,p2,rho){
+  # Simulates paired binary data, named x and y
+  # See https://stats.stackexchange.com/questions/284996/generating-correlated-binomial-random-variables
+  # Compute Pr(0,0) from rho, p1=Pr(X=1), and p2=Pr(Y=1).
+  #
+  # Compute the four probabilities for the joint distribution.
+  #
+  a.0 <- a(rho, p1, p2)
+  prob <- c(`(0,0)`=a.0, `(1,0)`=1-p2-a.0, `(0,1)`=1-p1-a.0, `(1,1)`=a.0+p1+p2-1)
+  if (min(prob) < 0) {
+    print(prob)
+    stop("Error: a probability is negative.")
+  }
+  #
+  # generation of correlated Binomial variables.
+  #
+  
+  
+  u <- sample.int(4, npair, replace=TRUE, prob=prob)
+  # the following is a neat way of converting the 1,2,3,4 back into the bivariate distribtution
+  y2 <- floor((u-1)/2)
+  y1 <- 1 - u %% 2
+  res<-data.frame(id  = c(1:npair, 1:npair), time = c(rep(1,npair),rep(2,npair)),y = c(y1,y2),y0 = c(y1,y1))
+  return(res)
+}
+
+
+# Example, RCT power: do we get increased power to detect a difference at follow-up
+set.seed(17)
+npair <- 1000
+# true odds ratio is (.2/.8)/(.15/.85) = 1.42 (logOR = 0.348)
+
+sim.bin.rct.prepost <- function (npair=1000) {
+
+  ctrl<-simBivBin( #
+    # Specify the parameters.
+    #
+    npair = npair,
+    p1 =0.1,
+    p2 = 0.15,
+    rho = 0.5)
+  
+  
+  
+  int<-simBivBin(
+    npair = 1000,
+    p1=0.1,
+    p2 = 0.2,
+    rho=0.6)
+ 
+  dat <- data.frame(grp = c(rep(0,npair*2),rep(1,npair*2)),rbind(ctrl,int))
+  
+  # Mixed effects model
+  
+  dat$time.f<- factor(dat$time)
+  m1 <- glmer(y ~ grp + relevel(time.f, ref = "2") + grp*relevel(time.f, ref = "2")+ (1 | id), data = dat, family = binomial, control = glmerControl(optimizer = "bobyqa"),nAGQ = 10)
+ 
+  
+  # Logistic regression, post only
+  m2<- glm(y~grp, dat[dat$time==2,],family = binomial(link="logit"))
+  
+  
+  # Gee post and pre data, but post only
+  
+  m3 <- geeglm(y ~ grp + relevel(time.f, ref = "2") + grp*relevel(time.f, ref = "2") , family=binomial(link="logit"),
+               data=dat, id=id, corstr = "exchangeable", std.err="san.se")
+  
+  
+  # m4 post with adjusting for baseline
+  m4<- glm(y~y0+grp, data=dat[dat$time==2,],family = binomial(link="logit"))
+  
+  return(list("m.ss"=m1,"m.post"=m2,"m.pa"=m3,"m.adj"=m4))
+}
+
+library(plyr)
+
+all.sims<-plyr::rlply(100,sim.bin.rct.prepost)
+
+hist(laply(all.sims, function(x) summary(x$"m.ss")$coefficients[2,1]))
+abline(v=0.348,col="red")
+mu.ss<-mean(laply(all.sims, function(x) summary(x$"m.ss")$coefficients[2,1]))
+abline(v=mu.ss,col="green")
+
+hist(laply(all.sims, function(x) summary(x$"m.post")$coefficients[2,1]))
+abline(v=0.348,col="red")
+mu.post<-mean(laply(all.sims, function(x) summary(x$"m.post")$coefficients[2,1]))
+abline(v=mu.post,col="green")
+
+hist(laply(all.sims, function(x) summary(x$"m.pa")$coefficients[2,1]))
+abline(v=0.348,col="red")
+mu.pa<-mean(laply(all.sims, function(x) summary(x$"m.pa")$coefficients[2,1]))
+abline(v=mu.pa,col="green")
+
+
+hist(laply(all.sims, function(x) summary(x$"m.adj")$coefficients[3,1]))
+abline(v=0.348,col="red")
+mu.adj<-mean(laply(all.sims, function(x) summary(x$"m.adj")$coefficients[3,1]))
+abline(v=mu.adj,col="green")
+
+mean(laply(all.sims, function(x) ifelse(summary(x$"m.ss")$coefficients[2,4] < .05 ,1,0)))
+mean(laply(all.sims, function(x) ifelse(summary(x$"m.post")$coefficients[2,4] < .05 ,1,0)))
+mean(laply(all.sims, function(x) ifelse(summary(x$"m.pa")$coefficients[2,4] < .05 ,1,0)))
+mean(laply(all.sims, function(x) ifelse(summary(x$"m.adj")$coefficients[3,4] < .05 ,1,0)))
+
+
+# power of the interaction term
+mean(laply(all.sims, function(x) ifelse(summary(x$"m.ss")$coefficients[4,4] < .05 ,1,0)))
+mean(laply(all.sims, function(x) ifelse(summary(x$"m.pa")$coefficients[4,4] < .05 ,1,0)))
+

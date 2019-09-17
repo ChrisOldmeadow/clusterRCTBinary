@@ -1,0 +1,52 @@
+library(lme4)
+n.site <- 20
+n.id <- 140
+n.period<- n.site+1
+nsim <- 200
+
+
+beta <- c(1089, -200)
+names(beta)<-c("(Intercept)","int")
+
+sigma <- 900
+rho <- 0.05
+theta <-sqrt((rho*sigma^2)/(1-rho))
+
+
+names(theta)<-c("site.(Intercept)")
+
+
+
+expdat <- expand.grid( id = seq(n.id),time = seq(n.period),site =seq(n.site)) 
+
+
+
+
+int <- expand.grid( id = seq(n.id),site =seq(n.site), int=1) 
+control <- expand.grid( id = seq(n.id),site =seq((2*n.site)), int= 0) 
+
+expdat<-rbind(int,control)
+
+ss <- simulate(~  int  + (1 | site), nsim = nsim, family = binomial, 
+               newdata = expdat, newparams = list(theta = theta,   beta = beta, sigma = sigma))
+
+expdat$y <- ss[, 1]
+fit1 <- lmer(y ~ int + (1 | site) , data = expdat)
+summary(fit1)
+
+
+
+
+regression_sim <- function(i) {
+  
+  expdat$y <- ss[,i]
+  coef(summary(lmer(y ~ int + (1 | site) , data = expdat)))["int",]
+}
+
+t1 <- system.time(fitAll <- lapply(seq(nsim), function(i) regression_sim(i)))
+
+
+res <- data.frame(matrix(unlist(fitAll), nrow=length(fitAll), byrow=T))
+res$p<-2*(1-(pnorm(abs(res[,3]))))
+names(res)<- c("est", "stderr", "t.value","pval")
+with(res, mean(pval < 0.05))

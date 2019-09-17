@@ -1,0 +1,25 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1568244128390.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "D091D2F5",
+    "lastKnownWriteTime" : 1568244252,
+    "last_content_update" : 1568244252013,
+    "path" : "C:/Users/coldmeadow/Dropbox/Scripts/R/Shiny Apps/Power/PowerClusterRCTBinomial/app.R",
+    "project_path" : "app.R",
+    "properties" : {
+        "cursorPosition" : "104,6",
+        "scrollLine" : "64"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
