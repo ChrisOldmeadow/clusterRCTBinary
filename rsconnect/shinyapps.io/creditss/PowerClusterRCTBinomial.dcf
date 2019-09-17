@@ -5,8 +5,8 @@ account: creditss
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1203510
-bundleId: 2419192
+bundleId: 2419635
 url: https://creditss.shinyapps.io/PowerClusterRCTBinomial/
-when: 1568689557.72664
+when: 1568706652.90371
 asMultiple: FALSE
 asStatic: FALSE
