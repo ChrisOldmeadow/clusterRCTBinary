@@ -1,23 +1,32 @@
 library(plyr)
+library(lme4)
 
-m<- 100 # average particpants per site
-k <- 10 #sites per arm
-p1<-0.1
-p2<-0.18
-expdat <- expand.grid(iid = c(1:m), site = c(1:k), ttt = c(0,1))
+m<- 5 # average particpants per site
+k1 <- 8 # number of intervention sites 
+k2 <- 10 # number of ctrl sites
+p1<-0.11
+p2<-0.03
 
-expdat$site <- factor(ifelse(expdat$ttt == 0,expdat$site, expdat$site + k))
+int <- expand.grid(iid = c(1:m), site = c(1:k1), ttt = 0)
+ctr <- expand.grid(iid = c(1:m), site = c((k1+1):(k1+k2)), ttt = 1)
+
+expdat <- rbind(int,ctr)
+
+
+#expdat$site <- factor(ifelse(expdat$ttt == 0,expdat$site, expdat$site + k))
 
 
 set.seed(101)
 nsim <- 200
 
+o2<-p2/(1-p2)
+o1<- p1/(1-p1)
 
-beta <- c(qlogis(p2), qlogis(p2-p1))
+beta <- c(log(o2), log(o1/o2))
 names(beta)<-c("(Intercept)","ttt")
 
 
-rho <- 0.05
+rho <- 0.01
 sigma2 <-(pi ^ 2) / 3
 theta <-sqrt((rho*sigma2)/(1-rho))
 
