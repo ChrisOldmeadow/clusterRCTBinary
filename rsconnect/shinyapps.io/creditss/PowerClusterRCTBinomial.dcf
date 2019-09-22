@@ -5,8 +5,9 @@ account: creditss
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1203510
-bundleId: 2419635
+bundleId: 2433976
 url: https://creditss.shinyapps.io/PowerClusterRCTBinomial/
-when: 1568706652.90371
+when: 1569141839.49323
 asMultiple: FALSE
 asStatic: FALSE
+ignoredFiles: scratch.R|simulate_powercRCT_binomial.R
