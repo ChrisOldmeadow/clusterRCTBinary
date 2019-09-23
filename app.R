@@ -8,6 +8,7 @@
 #
 
 library(shiny)
+require(plyr)
 require(shinyWidgets)
 require(shinythemes)
 require(ggplot2)

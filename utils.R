@@ -73,7 +73,7 @@ sim_cRCT <-function(m,p1,p2,k1,k2,rho,alpha,nreps,method){
     fitsim <- function(i) {
       expdat$resp <- ss[, i]
       return <- tryCatch({
-        res<-coef(summary(MASS::glmmPQL(resp ~ ttt , random = ~ 1 | site, family = binomial, data=expdat)))["ttt", ]
+        res<-coef(summary(MASS::glmmPQL(resp ~ ttt , random = ~ 1 | site, family = binomial, data=expdat,verbose=F)))["ttt", ]
         names(res)<-c("est","se","df","t","p")
         return(res)
       },
